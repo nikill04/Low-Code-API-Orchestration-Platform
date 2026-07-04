@@ -1,0 +1,40 @@
+{
+  "slug": "verify-pan",
+  "method": "POST",
+  "description": "Verifies a PAN number against Vendor A and returns a normalised result.",
+  "auth": { "type": "none" },
+  "successStatus": 200,
+  "debug": false,
+  "inputSchema": {
+    "body": {
+      "pan": { "type": "string", "required": true, "pattern": "^[A-Z]{5}[0-9]{4}[A-Z]$" }
+    }
+  },
+  "steps": [
+    {
+      "id": "verifyPan",
+      "type": "http",
+      "request": {
+        "method": "POST",
+        "url": "http://localhost:4000/mock/pan/verify",
+        "headers": { "Content-Type": "application/json" },
+        "body": { "pan_number": "{{input.body.pan}}" }
+      },
+      "timeoutMs": 5000,
+      "retry": { "maxAttempts": 3, "backoffMs": 300, "retryOn": [408, 429, 500, 502, 503, 504] }
+    },
+    {
+      "id": "maskedPan",
+      "type": "transform",
+      "plugin": "formatters",
+      "fn": "maskPan",
+      "input": "{{input.body.pan}}"
+    }
+  ],
+  "response": {
+    "valid": "{{steps.verifyPan.response.data.valid}}",
+    "status": "{{steps.verifyPan.response.data.status}}",
+    "name_on_record": "{{steps.verifyPan.response.data.name_on_record}}",
+    "pan_masked": "{{steps.maskedPan.output}}"
+  }
+}

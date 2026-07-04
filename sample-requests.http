@@ -1,0 +1,140 @@
+### Flowbase - sample requests
+### Works with the VS Code "REST Client" extension, or copy the curl equivalents.
+### Run `npm run seed` in /backend first so these slugs exist.
+
+@baseUrl = http://localhost:4000
+
+### 1. Log in to get a management token
+POST {{baseUrl}}/api/v1/auth/login
+Content-Type: application/json
+
+{
+  "email": "admin@orchestrator.dev",
+  "password": "Admin@123"
+}
+
+### Expected response:
+# {
+#   "success": true,
+#   "data": {
+#     "token": "eyJhbGciOi...",
+#     "user": { "id": "...", "email": "admin@orchestrator.dev", "role": "admin" }
+#   }
+# }
+
+
+### 2. Verify a PAN - public endpoint, no auth
+POST {{baseUrl}}/api/v1/run/verify-pan
+Content-Type: application/json
+
+{
+  "pan": "ABCDE1234F"
+}
+
+### Expected response:
+# {
+#   "success": true,
+#   "requestId": "...",
+#   "data": {
+#     "valid": true,
+#     "status": "VERIFIED",
+#     "name_on_record": "RAVI KUMAR SHARMA",
+#     "pan_masked": "XXXXXX234F"
+#   }
+# }
+
+
+### 3. Same endpoint, invalid format -> 400 with validation details
+POST {{baseUrl}}/api/v1/run/verify-pan
+Content-Type: application/json
+
+{
+  "pan": "not-a-pan"
+}
+
+### Expected response:
+# {
+#   "success": false,
+#   "error": {
+#     "message": "Validation failed",
+#     "details": ["body.pan: \"pan\" with value \"not-a-pan\" fails to match the required pattern: ..."]
+#   }
+# }
+
+
+### 4. Create an API key (requires the token from step 1)
+POST {{baseUrl}}/api/v1/auth/api-keys
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "label": "demo key"
+}
+
+
+### 5. Verify PAN then conditionally fetch GST - requires an API key
+POST {{baseUrl}}/api/v1/run/verify-pan-and-gst
+Content-Type: application/json
+X-API-Key: ok_your_key_here
+
+{
+  "pan": "ABCDE1234F"
+}
+
+### Expected response (abridged):
+# {
+#   "success": true,
+#   "data": {
+#     "pan_valid": true,
+#     "gst_checked": "success",
+#     "combined": { "gstin": "27ABCDE1234F1Z5", "business_name": "SHARMA TRADING CO.", ... }
+#   }
+# }
+
+
+### 6. Document verification - runs OCR, then fraud check + face match in parallel
+POST {{baseUrl}}/api/v1/run/verify-document
+Content-Type: application/json
+X-API-Key: ok_your_key_here
+
+{
+  "image_base64": "base64-placeholder",
+  "selfie_base64": "base64-placeholder"
+}
+
+### Expected response:
+# {
+#   "success": true,
+#   "data": {
+#     "extracted_name": "RAVI KUMAR SHARMA",
+#     "fraud_flagged": false,
+#     "face_match_score": 0.87,
+#     "decision": "APPROVED"
+#   },
+#   "trace": [
+#     { "stepId": "ocr", "type": "http", "status": "success", "durationMs": 320 },
+#     { "stepId": "fraudCheck", "type": "http", "status": "success", "durationMs": 210 },
+#     { "stepId": "faceMatch", "type": "http", "status": "success", "durationMs": 290 },
+#     { "stepId": "parallelChecks", "type": "parallel", "status": "success", "durationMs": 291 },
+#     { "stepId": "aggregateScore", "type": "transform", "status": "success", "durationMs": 0 },
+#     { "stepId": "decision", "type": "transform", "status": "success", "durationMs": 0 }
+#   ]
+# }
+
+
+### 7. Ask the AI agent to draft a new workflow from plain English
+POST {{baseUrl}}/api/v1/ai/generate
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "description": "Verify a PAN using Vendor A and, if it is valid, fetch GST details from Vendor B"
+}
+
+
+### 8. Metrics
+GET {{baseUrl}}/api/v1/metrics
+
+
+### 9. Prometheus-format metrics
+GET {{baseUrl}}/api/v1/metrics/prometheus

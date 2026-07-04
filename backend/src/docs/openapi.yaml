@@ -1,0 +1,152 @@
+openapi: 3.0.3
+info:
+  title: Low-Code API Orchestration Platform
+  version: "1.0.0"
+  description: >
+    Configuration-driven API orchestration engine. Define workflows once as JSON,
+    and this API executes them: validating input, calling downstream vendors,
+    branching, retrying, transforming and returning a standardised response -
+    all without touching application code.
+servers:
+  - url: http://localhost:4000/api/v1
+tags:
+  - name: Auth
+  - name: Workflows
+  - name: Generated APIs
+  - name: AI Agent
+  - name: Metrics
+paths:
+  /auth/login:
+    post:
+      tags: [Auth]
+      summary: Log in and receive a JWT for the management API
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                email: { type: string }
+                password: { type: string }
+      responses:
+        "200": { description: OK }
+        "401": { description: Invalid credentials }
+
+  /workflows:
+    get:
+      tags: [Workflows]
+      summary: List all defined workflows
+      security: [{ bearerAuth: [] }]
+      responses:
+        "200": { description: OK }
+    post:
+      tags: [Workflows]
+      summary: Create a new workflow from a configuration object
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                definition: { type: object }
+                activate: { type: boolean }
+      responses:
+        "201": { description: Created }
+        "422": { description: Workflow config failed validation }
+
+  /workflows/{id}:
+    get:
+      tags: [Workflows]
+      summary: Get a workflow and its version history
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string }
+      responses:
+        "200": { description: OK }
+    delete:
+      tags: [Workflows]
+      summary: Delete a workflow and all its versions
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string }
+      responses:
+        "200": { description: OK }
+
+  /workflows/test-run:
+    post:
+      tags: [Workflows]
+      summary: Execute a draft workflow definition without publishing it
+      security: [{ bearerAuth: [] }]
+      responses:
+        "200": { description: Execution result including step-by-step trace }
+
+  /ai/generate:
+    post:
+      tags: [AI Agent]
+      summary: Convert a natural-language description into a workflow configuration
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                description: { type: string, example: "Verify a PAN with Vendor A and, if valid, fetch GST details from Vendor B" }
+      responses:
+        "200": { description: Generated workflow definition + lint result }
+
+  /run/{slug}:
+    post:
+      tags: [Generated APIs]
+      summary: Invoke a published, config-defined API (method depends on how it was configured)
+      description: >
+        This single path pattern represents every endpoint created through the
+        platform. What actually happens (which vendors are called, in what
+        order, with what mapping) is entirely determined by the active workflow
+        configuration for the given slug - no route is hardcoded per API.
+      parameters:
+        - in: path
+          name: slug
+          required: true
+          schema: { type: string }
+          example: verify-pan
+      requestBody:
+        content:
+          application/json:
+            schema: { type: object }
+      responses:
+        "200": { description: Standardised success envelope }
+        "400": { description: Input validation failed }
+        "404": { description: No published API for this slug/method }
+        "502": { description: One or more downstream vendors failed }
+
+  /metrics:
+    get:
+      tags: [Metrics]
+      summary: Aggregate execution metrics as JSON
+      responses:
+        "200": { description: OK }
+
+  /metrics/prometheus:
+    get:
+      tags: [Metrics]
+      summary: Execution metrics in Prometheus text-exposition format
+      responses:
+        "200": { description: OK }
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT

@@ -1,0 +1,79 @@
+{
+  "slug": "verify-document",
+  "method": "POST",
+  "description": "Runs OCR extraction, then fraud check and face match in parallel, and returns an aggregated decision.",
+  "auth": { "type": "apiKey" },
+  "rateLimit": { "windowMs": 60000, "max": 20 },
+  "successStatus": 200,
+  "debug": true,
+  "inputSchema": {
+    "body": {
+      "image_base64": { "type": "string", "required": true },
+      "selfie_base64": { "type": "string", "required": true }
+    }
+  },
+  "steps": [
+    {
+      "id": "ocr",
+      "type": "http",
+      "request": {
+        "method": "POST",
+        "url": "http://localhost:4000/mock/document/ocr/extract",
+        "body": { "image_base64": "{{input.body.image_base64}}" }
+      },
+      "retry": { "maxAttempts": 2, "backoffMs": 250 }
+    },
+    {
+      "id": "parallelChecks",
+      "type": "parallel",
+      "steps": [
+        {
+          "id": "fraudCheck",
+          "type": "http",
+          "request": {
+            "method": "POST",
+            "url": "http://localhost:4000/mock/document/fraud/check",
+            "body": { "document_id": "{{steps.ocr.response.data.document_id}}" }
+          },
+          "retry": { "maxAttempts": 2, "backoffMs": 250 }
+        },
+        {
+          "id": "faceMatch",
+          "type": "http",
+          "request": {
+            "method": "POST",
+            "url": "http://localhost:4000/mock/document/face/match",
+            "body": {
+              "selfie_base64": "{{input.body.selfie_base64}}",
+              "document_id": "{{steps.ocr.response.data.document_id}}"
+            }
+          },
+          "retry": { "maxAttempts": 2, "backoffMs": 250 }
+        }
+      ]
+    },
+    {
+      "id": "aggregateScore",
+      "type": "transform",
+      "plugin": "aggregators",
+      "fn": "averageScore",
+      "input": [
+        "{{steps.faceMatch.response.data.match_score}}"
+      ]
+    },
+    {
+      "id": "decision",
+      "type": "transform",
+      "plugin": "aggregators",
+      "fn": "decideByThreshold",
+      "input": "{{steps.aggregateScore.output}}",
+      "args": { "threshold": 0.8 }
+    }
+  ],
+  "response": {
+    "extracted_name": "{{steps.ocr.response.data.extracted_text.name}}",
+    "fraud_flagged": "{{steps.fraudCheck.response.data.flagged}}",
+    "face_match_score": "{{steps.faceMatch.response.data.match_score}}",
+    "decision": "{{steps.decision.output}}"
+  }
+}

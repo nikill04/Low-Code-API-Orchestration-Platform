@@ -1,0 +1,212 @@
+:root {
+  /* Palette - deep ink surfaces with a cool teal primary + warm amber and
+     rose reserved strictly for status meaning (running/warn, error). Not
+     a single-accent scheme: the three hues each mean something specific
+     on the canvas, which is the point of the whole app. */
+  --ink-950: #0b0f17;
+  --ink-900: #0f1420;
+  --ink-800: #141b29;
+  --ink-700: #1b2434;
+  --ink-600: #263145;
+  --ink-500: #384664;
+  --line: #232d40;
+
+  --text-hi: #e9edf5;
+  --text-mid: #aab4c8;
+  --text-low: #6c7891;
+
+  --teal: #37c6c0;
+  --teal-dim: #1f4b49;
+  --indigo: #5b7bfa;
+  --indigo-dim: #263461;
+  --amber: #f5a623;
+  --amber-dim: #4a3a17;
+  --rose: #ef5b6f;
+  --rose-dim: #4a1f28;
+  --violet: #a78bfa;
+  --violet-dim: #362a56;
+
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 16px;
+
+  --font-display: "Space Grotesk", "Inter", sans-serif;
+  --font-body: "Inter", -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, monospace;
+}
+
+* { box-sizing: border-box; }
+
+html, body, #root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--ink-950);
+  color: var(--text-hi);
+  font-family: var(--font-body);
+  font-size: 14px;
+  -webkit-font-smoothing: antialiased;
+}
+
+button, input, select, textarea {
+  font-family: inherit;
+  font-size: inherit;
+  color: inherit;
+}
+
+a { color: inherit; }
+
+h1, h2, h3, h4 {
+  font-family: var(--font-display);
+  margin: 0;
+  letter-spacing: -0.01em;
+}
+
+code, pre, .mono {
+  font-family: var(--font-mono);
+}
+
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--ink-600); border-radius: 8px; }
+::-webkit-scrollbar-thumb:hover { background: var(--ink-500); }
+
+/* ---------- shared primitives ---------- */
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid var(--line);
+  background: var(--ink-800);
+  color: var(--text-hi);
+  padding: 8px 14px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  font-weight: 500;
+  transition: border-color 0.15s ease, transform 0.05s ease;
+}
+.btn:hover { border-color: var(--ink-500); }
+.btn:active { transform: translateY(1px); }
+.btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.btn-primary {
+  background: var(--teal);
+  border-color: var(--teal);
+  color: #04211f;
+  font-weight: 600;
+}
+.btn-primary:hover { background: #48d4ce; border-color: #48d4ce; }
+
+.btn-danger {
+  background: transparent;
+  border-color: var(--rose-dim);
+  color: var(--rose);
+}
+.btn-danger:hover { background: var(--rose-dim); }
+
+.btn-ghost {
+  background: transparent;
+  border-color: transparent;
+}
+.btn-ghost:hover { background: var(--ink-800); }
+
+.btn-sm { padding: 5px 10px; font-size: 12.5px; }
+
+.card {
+  background: var(--ink-900);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  padding: 20px;
+}
+
+.input, .select, .textarea {
+  width: 100%;
+  background: var(--ink-800);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  padding: 9px 11px;
+  color: var(--text-hi);
+  outline: none;
+  transition: border-color 0.15s ease;
+}
+.input:focus, .select:focus, .textarea:focus { border-color: var(--indigo); }
+.textarea { resize: vertical; font-family: var(--font-mono); font-size: 12.5px; line-height: 1.5; }
+
+.label {
+  display: block;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-low);
+  margin-bottom: 6px;
+}
+
+.field { margin-bottom: 16px; }
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 2px 9px;
+  border-radius: 999px;
+  font-size: 11.5px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+.badge-teal { background: var(--teal-dim); color: var(--teal); }
+.badge-indigo { background: var(--indigo-dim); color: var(--indigo); }
+.badge-amber { background: var(--amber-dim); color: var(--amber); }
+.badge-rose { background: var(--rose-dim); color: var(--rose); }
+.badge-violet { background: var(--violet-dim); color: var(--violet); }
+.badge-muted { background: var(--ink-700); color: var(--text-mid); }
+
+.dot {
+  width: 7px; height: 7px; border-radius: 50%; display: inline-block;
+}
+
+table.data-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+.data-table th {
+  text-align: left;
+  font-size: 11.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-low);
+  font-weight: 600;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--line);
+}
+.data-table td {
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--line);
+  font-size: 13.5px;
+}
+.data-table tr:last-child td { border-bottom: none; }
+.data-table tbody tr:hover { background: var(--ink-800); }
+
+.empty-state {
+  text-align: center;
+  padding: 48px 20px;
+  color: var(--text-mid);
+}
+
+.divider {
+  height: 1px;
+  background: var(--line);
+  border: none;
+  margin: 18px 0;
+}
+
+/* dotted grid - used behind the workflow canvas, our one signature texture */
+.dotted-grid {
+  background-image: radial-gradient(var(--ink-600) 1px, transparent 1px);
+  background-size: 18px 18px;
+  background-color: var(--ink-950);
+}

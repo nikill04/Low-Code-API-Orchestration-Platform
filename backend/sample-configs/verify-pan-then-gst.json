@@ -1,0 +1,54 @@
+{
+  "slug": "verify-pan-and-gst",
+  "method": "POST",
+  "description": "Verifies PAN with Vendor A, and only if it is valid, fetches GST registration details from Vendor B, then merges both results.",
+  "auth": { "type": "apiKey" },
+  "rateLimit": { "windowMs": 60000, "max": 30 },
+  "successStatus": 200,
+  "debug": false,
+  "inputSchema": {
+    "body": {
+      "pan": { "type": "string", "required": true, "pattern": "^[A-Z]{5}[0-9]{4}[A-Z]$" }
+    }
+  },
+  "steps": [
+    {
+      "id": "verifyPan",
+      "type": "http",
+      "request": {
+        "method": "POST",
+        "url": "http://localhost:4000/mock/pan/verify",
+        "body": { "pan_number": "{{input.body.pan}}" }
+      },
+      "retry": { "maxAttempts": 3, "backoffMs": 300 }
+    },
+    {
+      "id": "fetchGst",
+      "type": "http",
+      "condition": { "path": "steps.verifyPan.response.data.valid", "operator": "isTrue" },
+      "request": {
+        "method": "GET",
+        "url": "http://localhost:4000/mock/gst/lookup",
+        "params": { "pan": "{{input.body.pan}}" }
+      },
+      "cache": { "ttlSeconds": 120 },
+      "retry": { "maxAttempts": 2, "backoffMs": 250 },
+      "onError": "continue"
+    },
+    {
+      "id": "merged",
+      "type": "transform",
+      "plugin": "aggregators",
+      "fn": "mergeObjects",
+      "input": [
+        "{{steps.verifyPan.response.data}}",
+        "{{steps.fetchGst.response.data}}"
+      ]
+    }
+  ],
+  "response": {
+    "pan_valid": "{{steps.verifyPan.response.data.valid}}",
+    "gst_checked": "{{steps.fetchGst.status}}",
+    "combined": "{{steps.merged.output}}"
+  }
+}
