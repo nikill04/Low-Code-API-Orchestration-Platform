@@ -17,6 +17,15 @@ export const workflowApi = {
   testRun: (definition, input) => client.post('/workflows/test-run', { definition, input }),
   logs: (id) => client.get(`/workflows/${id}/logs`),
   plugins: () => client.get('/workflows/plugins'),
+
+  schedule: (id, cronExpression, payload, enabled = true) =>
+    client.post(`/workflows/${id}/schedule`, { cronExpression, payload, enabled }),
+  listSchedules: (id) => client.get(`/workflows/${id}/schedule`),
+  deleteSchedule: (jobId) => client.delete(`/workflows/schedule/${jobId}`),
+
+  subscribeWebhook: (id, url, event) => client.post(`/workflows/${id}/webhooks`, { url, event }),
+  listWebhooks: (id) => client.get(`/workflows/${id}/webhooks`),
+  deleteWebhook: (subId) => client.delete(`/workflows/webhooks/${subId}`),
 };
 
 export const aiApi = {

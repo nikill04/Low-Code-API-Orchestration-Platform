@@ -13,6 +13,7 @@ const authRoutes = require('./routes/authRoutes');
 const workflowRoutes = require('./routes/workflowRoutes');
 const aiRoutes = require('./routes/aiRoutes');
 const metricsRoutes = require('./routes/metricsRoutes');
+const webhookDemoRoutes = require('./routes/webhookDemoRoutes');
 const dynamicRouter = require('./services/dynamicRouter');
 
 const panVendor = require('./mockVendors/panVendor');
@@ -40,6 +41,7 @@ app.use('/mock/pan', panVendor);
 app.use('/mock/aadhaar', aadhaarVendor);
 app.use('/mock/gst', gstVendor);
 app.use('/mock/document', documentVendors);
+app.use('/mock/webhook', webhookDemoRoutes);
 
 // --- Management API (v1) -----------------------------------------------------
 app.use('/api/v1/auth', authRoutes);

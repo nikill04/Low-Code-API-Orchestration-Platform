@@ -1,6 +1,7 @@
 const express = require('express');
 const workflowService = require('./workflowService');
 const executionLogService = require('./executionLogService');
+const webhookService = require('./webhookService');
 const { executeWorkflow } = require('../engine/executor');
 const { validateAgainstSchema } = require('../engine/validator');
 const { dynamicAuth } = require('../middleware/auth');
@@ -68,6 +69,16 @@ router.all('/run/:slug', async (req, res, next) => {
         response: result.response,
         error: result.error,
       });
+
+      if (definition.webhook?.onComplete) {
+        webhookService.notify(workflow.id, {
+          event: 'execution.completed',
+          requestId: result.requestId,
+          success: result.success,
+          slug: workflow.slug,
+          response: result.response,
+        });
+      }
 
       if (!result.success) {
         logger.warn(`Workflow ${workflow.slug} failed: ${result.error?.message}`);

@@ -1,5 +1,7 @@
 const express = require('express');
 const workflowService = require('../services/workflowService');
+const schedulerService = require('../services/schedulerService');
+const webhookService = require('../services/webhookService');
 const executionLogService = require('../services/executionLogService');
 const aiAgentService = require('../services/aiAgentService');
 const { executeWorkflow } = require('../engine/executor');
@@ -89,6 +91,37 @@ router.post('/test-run', async (req, res, next) => {
 
 router.get('/:id/logs', (req, res) => {
   res.json({ success: true, data: executionLogService.listLogs({ workflowId: req.params.id, limit: 100 }) });
+});
+
+// Scheduling
+router.post('/:id/schedule', (req, res, next) => {
+  try {
+    const { cronExpression, payload, enabled = true } = req.body;
+    const job = schedulerService.scheduleJob({ workflowId: req.params.id, cronExpression, payload, enabled });
+    res.status(201).json({ success: true, data: job });
+  } catch (err) {
+    next(err);
+  }
+});
+router.get('/:id/schedule', (req, res) => {
+  res.json({ success: true, data: schedulerService.listJobs(req.params.id) });
+});
+router.delete('/schedule/:jobId', (req, res) => {
+  schedulerService.deleteJob(req.params.jobId);
+  res.json({ success: true, data: { deleted: true } });
+});
+
+// Webhooks
+router.post('/:id/webhooks', (req, res) => {
+  const { url, event } = req.body;
+  res.status(201).json({ success: true, data: webhookService.subscribe({ workflowId: req.params.id, url, event }) });
+});
+router.get('/:id/webhooks', (req, res) => {
+  res.json({ success: true, data: webhookService.listSubscriptions(req.params.id) });
+});
+router.delete('/webhooks/:subId', (req, res) => {
+  webhookService.unsubscribe(req.params.subId);
+  res.json({ success: true, data: { deleted: true } });
 });
 
 module.exports = router;

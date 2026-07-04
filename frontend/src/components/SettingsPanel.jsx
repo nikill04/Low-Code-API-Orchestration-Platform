@@ -77,6 +77,11 @@ export default function SettingsPanel({ definition, onChange }) {
       </div>
 
       <label style={{ display: 'flex', alignItems: 'center', gap: 8, margin: '14px 0', cursor: 'pointer' }}>
+        <input type="checkbox" checked={Boolean(definition.webhook?.onComplete)} onChange={(e) => patch({ webhook: { onComplete: e.target.checked } })} />
+        <span className="label" style={{ margin: 0 }}>Fire webhook subscribers when execution completes</span>
+      </label>
+
+      <label style={{ display: 'flex', alignItems: 'center', gap: 8, margin: '14px 0', cursor: 'pointer' }}>
         <input type="checkbox" checked={Boolean(definition.debug)} onChange={(e) => patch({ debug: e.target.checked })} />
         <span className="label" style={{ margin: 0 }}>Include step trace in the API response (useful while building)</span>
       </label>

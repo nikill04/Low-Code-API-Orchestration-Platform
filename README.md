@@ -61,7 +61,7 @@ seeded endpoints:
 | Example | Endpoint | Demonstrates |
 |---|---|---|
 | Verify PAN → Vendor A → transform → response | `verify-pan` | Single vendor call, transform step |
-| Verify PAN → Vendor A → *if valid* → Vendor B → merge | `verify-pan-and-gst` | Conditional execution, caching, merge |
+| Verify PAN → Vendor A → *if valid* → Vendor B → merge | `verify-pan-and-gst` | Conditional execution, caching, merge, webhook |
 | Upload doc → OCR → Fraud + Face Match → aggregate | `verify-document` | Parallel execution, scoring, decisioning |
 
 ## Architecture
@@ -95,7 +95,8 @@ seeded endpoints:
                          │   └──────────────────┘                      │
                          │                                             │
                          │   lowdb (JSON file) ── workflows, versions, │
-                         │   execution logs, API keys                  │
+                         │   execution logs, API keys, schedules,      │
+                         │   webhook subscriptions                     │
                          └───────────────────────────────────────────────┘
 ```
 
@@ -152,7 +153,7 @@ and you'll land on a dashboard with the four sample APIs already published.
 
 1. **Dashboard** — execution counts, success rate, latency, recent activity.
 2. **Workflows** — list, create, edit, delete, publish. Click one to see its
-   version history and execution logs.
+   version history, scheduled runs, and webhook subscribers.
 3. **Visual editor** — build a workflow as a node graph (drag in HTTP/Transform/
    Parallel steps, wire up conditions, edit request mappings in the inspector
    panel), or flip to raw JSON for anything the visual builder doesn't cover
@@ -177,6 +178,7 @@ A workflow definition has this shape:
   "auth": { "type": "none" | "apiKey" | "jwt" },
   "rateLimit": { "windowMs": 60000, "max": 30 },   // optional, per-workflow
   "debug": false,                     // include step trace in the response
+  "webhook": { "onComplete": true },  // fire subscribed webhooks after every run
   "inputSchema": {
     "body": { "fieldName": { "type": "string", "required": true, "pattern": "..." } }
   },
@@ -225,17 +227,17 @@ Full annotated examples live in [`backend/sample-configs/`](./backend/sample-con
 | Docker support | `backend/Dockerfile`, `frontend/Dockerfile`, `docker-compose.yml` |
 | Swagger / OpenAPI | `backend/src/docs/openapi.yaml`, served at `/api-docs` |
 | Parallel execution | `type: "parallel"` step, see `verify-document` sample config |
+| Webhook support | `backend/src/services/webhookService.js`, subscribe via the Webhooks tab |
+| Scheduled execution | `backend/src/services/schedulerService.js` (node-cron), Schedule tab |
 | Caching | Per-step `cache.ttlSeconds`, in-memory (`backend/src/engine/cache.js`) |
 | Plugin architecture | Drop a `.js` file in `backend/src/plugins/`, export named functions, use immediately from any `transform` step |
+| CI/CD pipeline | `.github/workflows/ci.yml` — tests backend, builds frontend, builds both Docker images on every push |
 
-**Bonuses intentionally left out:** webhook support, scheduled (cron) execution,
-and Kubernetes/CI-CD manifests. All three are easy to bolt onto this design
-(a webhook is just another `callWithRetry` call fired after `executionLogService.recordExecution`;
-a scheduler is `node-cron` calling `executeWorkflow` directly), but none of
-them change how the *core* orchestration engine works, and adding them just to
-tick boxes would mean shipping infrastructure I couldn't confidently explain
-line-by-line in an interview. I'd rather have a smaller feature set I fully
-own than a larger one I'm shaky on.
+**Bonus intentionally left out: Kubernetes deployment.** It's the one item on
+the list that's a genuinely separate skill (cluster networking, manifests,
+registries) rather than an extension of the orchestration engine itself, and
+isn't proportionate for a weekend project. Everything else on the bonus list
+is implemented.
 
 ## The AI Agent
 
@@ -269,6 +271,8 @@ GET    /api/v1/workflows/:id                        Get + version history (JWT)
 POST   /api/v1/workflows/:id/versions               Add a new version     (JWT)
 POST   /api/v1/workflows/:id/versions/:v/activate   Roll back/forward     (JWT)
 POST   /api/v1/workflows/test-run                   Dry-run a draft       (JWT)
+POST   /api/v1/workflows/:id/schedule               Schedule a cron run   (JWT)
+POST   /api/v1/workflows/:id/webhooks               Subscribe a webhook   (JWT)
 POST   /api/v1/ai/generate                          NL → workflow config  (JWT)
 GET    /api/v1/metrics                              JSON stats
 GET    /api/v1/metrics/prometheus                   Prometheus format
@@ -314,9 +318,9 @@ backend/
   src/
     app.js, server.js        Express wiring + boot
     engine/                  mapper, condition evaluator, http client, executor, cache, plugin loader
-    services/                workflow CRUD/versioning, dynamic router, auth, AI agent
+    services/                workflow CRUD/versioning, dynamic router, scheduler, webhooks, auth, AI agent
     middleware/               auth, rate limiting, error handling
-    routes/                   auth, workflows, ai, metrics
+    routes/                   auth, workflows, ai, metrics, webhook demo receiver
     mockVendors/               stand-in PAN/Aadhaar/GST/OCR/fraud/face-match APIs
     plugins/                   transform functions (formatters, aggregators)
     docs/openapi.yaml
@@ -327,6 +331,7 @@ frontend/
     pages/                     Dashboard, WorkflowList/Detail/Editor, TestConsole, Logs, AIAssistant, ApiKeys
     components/                AppShell, StepInspector, SettingsPanel, TestRunModal, node components
     api/                       axios client + endpoint groupings
+.github/workflows/ci.yml
 docker-compose.yml
 ```
 
@@ -355,7 +360,8 @@ A few calls I made deliberately, and why:
   which matters a lot for anyone reviewing this without wanting to hand out
   an API key. The "real" LLM path is there and used automatically once a key
   is set.
-- **Skipped Kubernetes, CI/CD, scheduling, and webhooks.** These were on the
-  bonus list, but they're deployment/ops concerns that sit on top of the
-  orchestration engine rather than inside it. I'd rather have a smaller set
-  of bonus features I can explain in depth than a longer checklist I can't.
+- **Skipped Kubernetes.** It's on the bonus list, but it's a deployment/ops
+  skill that sits on top of the orchestration engine rather than inside it,
+  and needs a cluster + registry to actually exercise — not proportionate for
+  a weekend project. Docker + docker-compose already cover "runs the same way
+  everywhere," which is the part of containerization that matters here.

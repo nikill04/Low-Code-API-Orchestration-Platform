@@ -5,7 +5,7 @@ import PageHeader from '../components/PageHeader';
 import MethodBadge from '../components/MethodBadge';
 import StatusBadge from '../components/StatusBadge';
 
-const TABS = ['Overview', 'Versions', 'Logs'];
+const TABS = ['Overview', 'Versions', 'Schedule', 'Webhooks', 'Logs'];
 
 export default function WorkflowDetail() {
   const { id } = useParams();
@@ -58,6 +58,8 @@ export default function WorkflowDetail() {
 
       {tab === 'Overview' && <OverviewTab workflow={workflow} definition={activeDefinition} />}
       {tab === 'Versions' && <VersionsTab workflowId={id} versions={versions} activeVersion={workflow.activeVersion} onChange={refresh} />}
+      {tab === 'Schedule' && <ScheduleTab workflowId={id} />}
+      {tab === 'Webhooks' && <WebhooksTab workflowId={id} />}
       {tab === 'Logs' && <LogsTab workflowId={id} />}
     </div>
   );
@@ -109,6 +111,109 @@ function VersionsTab({ workflowId, versions, activeVersion, onChange }) {
           ))}
         </tbody>
       </table>
+    </div>
+  );
+}
+
+function ScheduleTab({ workflowId }) {
+  const [jobs, setJobs] = useState([]);
+  const [cron, setCron] = useState('*/5 * * * *');
+  const [payload, setPayload] = useState('{}');
+
+  useEffect(() => { refresh(); }, [workflowId]);
+  function refresh() { workflowApi.listSchedules(workflowId).then((r) => setJobs(r.data.data)); }
+
+  async function create() {
+    try {
+      await workflowApi.schedule(workflowId, cron, JSON.parse(payload));
+      refresh();
+    } catch (e) {
+      alert('Invalid cron expression or payload JSON');
+    }
+  }
+  async function remove(jobId) {
+    await workflowApi.deleteSchedule(jobId);
+    refresh();
+  }
+
+  return (
+    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.2fr', gap: 16 }}>
+      <div className="card">
+        <div className="label">New scheduled run</div>
+        <div className="field" style={{ marginTop: 10 }}>
+          <label className="label">Cron expression</label>
+          <input className="input mono" value={cron} onChange={(e) => setCron(e.target.value)} />
+        </div>
+        <div className="field">
+          <label className="label">Payload (sent as request body)</label>
+          <textarea className="textarea" rows={4} value={payload} onChange={(e) => setPayload(e.target.value)} />
+        </div>
+        <button className="btn btn-primary" onClick={create}>Schedule</button>
+      </div>
+      <div className="card" style={{ padding: 0 }}>
+        {jobs.length === 0 ? <div className="empty-state">No scheduled runs yet.</div> : (
+          <table className="data-table">
+            <thead><tr><th>Cron</th><th>Payload</th><th></th></tr></thead>
+            <tbody>
+              {jobs.map((j) => (
+                <tr key={j.id}>
+                  <td className="mono">{j.cronExpression}</td>
+                  <td className="mono" style={{ fontSize: 11.5 }}>{JSON.stringify(j.payload)}</td>
+                  <td><button className="btn btn-danger btn-sm" onClick={() => remove(j.id)}>Remove</button></td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function WebhooksTab({ workflowId }) {
+  const [subs, setSubs] = useState([]);
+  const [url, setUrl] = useState('http://localhost:4000/mock/webhook/receive');
+
+  useEffect(() => { refresh(); }, [workflowId]);
+  function refresh() { workflowApi.listWebhooks(workflowId).then((r) => setSubs(r.data.data)); }
+
+  async function create() {
+    await workflowApi.subscribeWebhook(workflowId, url, 'execution.completed');
+    refresh();
+  }
+  async function remove(subId) {
+    await workflowApi.deleteWebhook(subId);
+    refresh();
+  }
+
+  return (
+    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.2fr', gap: 16 }}>
+      <div className="card">
+        <div className="label">Subscribe a URL</div>
+        <p style={{ fontSize: 12.5, color: 'var(--text-mid)', margin: '6px 0 12px' }}>
+          Fires an <code>execution.completed</code> event whenever this API runs (remember to enable it under the workflow's Settings too).
+        </p>
+        <div className="field">
+          <input className="input mono" value={url} onChange={(e) => setUrl(e.target.value)} />
+        </div>
+        <button className="btn btn-primary" onClick={create}>Subscribe</button>
+      </div>
+      <div className="card" style={{ padding: 0 }}>
+        {subs.length === 0 ? <div className="empty-state">No subscribers yet.</div> : (
+          <table className="data-table">
+            <thead><tr><th>URL</th><th>Event</th><th></th></tr></thead>
+            <tbody>
+              {subs.map((s) => (
+                <tr key={s.id}>
+                  <td className="mono" style={{ fontSize: 12 }}>{s.url}</td>
+                  <td>{s.event}</td>
+                  <td><button className="btn btn-danger btn-sm" onClick={() => remove(s.id)}>Remove</button></td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </div>
     </div>
   );
 }

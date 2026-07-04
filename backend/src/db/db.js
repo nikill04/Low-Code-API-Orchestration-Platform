@@ -21,6 +21,8 @@ db.defaults({
   workflows: [], // { id, slug, method, activeVersion, createdAt, ownerId }
   workflowVersions: [], // { id, workflowId, version, definition, createdAt, createdBy }
   executionLogs: [], // { id, workflowId, version, requestId, status, steps[], startedAt, durationMs }
+  webhookSubscriptions: [], // { id, workflowId, url, event }
+  scheduledJobs: [], // { id, workflowId, cronExpression, payload, enabled }
 }).write();
 
 module.exports = db;

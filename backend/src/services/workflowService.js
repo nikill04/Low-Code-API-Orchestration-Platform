@@ -94,6 +94,8 @@ function deleteWorkflow(workflowId) {
   db.get('workflows').remove({ id: workflowId }).write();
   db.get('workflowVersions').remove({ workflowId }).write();
   db.get('executionLogs').remove({ workflowId }).write();
+  db.get('scheduledJobs').remove({ workflowId }).write();
+  db.get('webhookSubscriptions').remove({ workflowId }).write();
 }
 
 module.exports = {

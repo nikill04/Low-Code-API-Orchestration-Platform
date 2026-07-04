@@ -19,6 +19,8 @@ flowchart TB
         HTTP[HTTP Client + Retry]
         PLUG[Plugin Loader]
         CACHE[In-memory Cache]
+        SCHED[Scheduler - node-cron]
+        HOOK[Webhook Dispatcher]
         AI[AI Agent Service]
         DB[(lowdb - db.json)]
         VEND[Mock Vendor APIs]
@@ -39,6 +41,10 @@ flowchart TB
 
     MGMT --> DB
     DR --> DB
+    SCHED --> EXE
+    SCHED --> DB
+    EXE --> HOOK
+    HOOK --> EXT
 
     MGMT --> AI
     AI --> DB
@@ -55,6 +61,7 @@ sequenceDiagram
     participant E as Executor
     participant Vendor as Mock Vendor APIs
     participant Log as Execution Log
+    participant Hook as Webhook Service
 
     C->>R: POST /run/verify-pan-and-gst {pan}
     R->>WS: getWorkflowBySlugAndMethod()
@@ -72,6 +79,7 @@ sequenceDiagram
     E->>E: transform step - mergeObjects()
     E-->>R: { success, response, trace }
     R->>Log: recordExecution()
+    R->>Hook: notify() (fire-and-forget, retried)
     R-->>C: 200 { success: true, data: {...} }
 ```
 

@@ -6,6 +6,7 @@
   "rateLimit": { "windowMs": 60000, "max": 30 },
   "successStatus": 200,
   "debug": false,
+  "webhook": { "onComplete": true },
   "inputSchema": {
     "body": {
       "pan": { "type": "string", "required": true, "pattern": "^[A-Z]{5}[0-9]{4}[A-Z]$" }
