@@ -20,6 +20,8 @@ module.exports = {
   mockVendorMinLatencyMs: parseInt(process.env.MOCK_VENDOR_MIN_LATENCY_MS, 10) || 150,
   mockVendorMaxLatencyMs: parseInt(process.env.MOCK_VENDOR_MAX_LATENCY_MS, 10) || 600,
 
-  anthropicApiKey: process.env.ANTHROPIC_API_KEY || '',
-  aiModel: process.env.AI_MODEL || 'claude-sonnet-4-6',
+  // anthropicApiKey: process.env.ANTHROPIC_API_KEY || '',
+  // aiModel: process.env.AI_MODEL || 'claude-sonnet-4-6',
+  groqApiKey: process.env.GROQ_API_KEY || '',
+  aiModel: process.env.AI_MODEL || 'llama-3.3-70b-versatile',
 };

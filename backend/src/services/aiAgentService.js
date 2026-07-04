@@ -48,26 +48,50 @@ Available plugin functions:
 
 Respond with ONLY the JSON object. No markdown fences, no commentary.`;
 
+// async function callClaude(userPrompt) {
+//   const response = await axios.post(
+//     'https://api.anthropic.com/v1/messages',
+//     {
+//       model: env.aiModel,
+//       max_tokens: 2000,
+//       system: SYSTEM_PROMPT,
+//       messages: [{ role: 'user', content: userPrompt }],
+//     },
+//     {
+//       headers: {
+//         'content-type': 'application/json',
+//         'x-api-key': env.anthropicApiKey,
+//         'anthropic-version': '2023-06-01',
+//       },
+//       timeout: 20000,
+//     }
+//   );
+//   const textBlock = response.data.content.find((b) => b.type === 'text');
+//   return JSON.parse(textBlock.text);
+// }
+
+
 async function callClaude(userPrompt) {
   const response = await axios.post(
-    'https://api.anthropic.com/v1/messages',
+    'https://api.groq.com/openai/v1/chat/completions',
     {
       model: env.aiModel,
       max_tokens: 2000,
-      system: SYSTEM_PROMPT,
-      messages: [{ role: 'user', content: userPrompt }],
+      messages: [
+        { role: 'system', content: SYSTEM_PROMPT },
+        { role: 'user', content: userPrompt },
+      ],
     },
     {
       headers: {
         'content-type': 'application/json',
-        'x-api-key': env.anthropicApiKey,
-        'anthropic-version': '2023-06-01',
+        Authorization: `Bearer ${env.groqApiKey}`,
       },
       timeout: 20000,
     }
   );
-  const textBlock = response.data.content.find((b) => b.type === 'text');
-  return JSON.parse(textBlock.text);
+  const text = response.data.choices[0].message.content;
+  return JSON.parse(text.replace(/^```json\n?|\n?```$/g, ''));
 }
 
 // If no API key is configured, fall back to a rule-based generator so the
@@ -115,7 +139,7 @@ function ruleBasedGenerate(description) {
 }
 
 async function generateWorkflowFromDescription(description) {
-  if (!env.anthropicApiKey) {
+  if (!env.groqApiKey) {
     logger.info('AI agent running in rule-based fallback mode (no ANTHROPIC_API_KEY set)');
     return { source: 'rule-based-fallback', definition: ruleBasedGenerate(description) };
   }

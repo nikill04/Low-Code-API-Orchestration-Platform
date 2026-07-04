@@ -35,6 +35,33 @@
   --font-mono: "JetBrains Mono", ui-monospace, monospace;
 }
 
+/* Light mode - same variable names, so every component that already
+   references var(--ink-*) / var(--text-*) / var(--line) repaints for
+   free. Status/brand hues (teal, indigo, amber, rose, violet) stay put;
+   only the neutral surface + text scale flips. */
+[data-theme='light'] {
+  --ink-950: #f4f6fa;
+  --ink-900: #ffffff;
+  --ink-800: #eef1f6;
+  --ink-700: #e3e8f0;
+  --ink-600: #d3dae6;
+  --ink-500: #b7c0d1;
+  --line: #dde3ed;
+
+  --text-hi: #121723;
+  --text-mid: #4b566b;
+  --text-low: #7c869a;
+
+  --teal-dim: #d6f3f1;
+  --indigo-dim: #e1e7fe;
+  --amber-dim: #fdecd0;
+  --rose-dim: #fbdee2;
+  --violet-dim: #ece4fd;
+}
+
+[data-theme='light'] .btn-primary { color: #04211f; }
+[data-theme='light'] .dotted-grid { background-image: radial-gradient(var(--ink-500) 1px, transparent 1px); }
+
 * { box-sizing: border-box; }
 
 html, body, #root {
